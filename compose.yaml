@@ -1,32 +1,69 @@
 version: "3.7"
-
 services:
   postgres:
     image: postgres
     restart: always
     ports:
       - "5432:5432"
-    environment:    
+    environment:
       POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: clients
+      POSTGRES_USER: postgres
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
     deploy:
       resources:
         limits:
           cpus: "0.5"
           memory: "200MB"
-    networks:
-      - rinhav22222
 
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
+  api01: &api
+    image: podinho/rinhav2:latest
+    hostname: api01
     ports:
-      - "5050:80"
+      - "3001:3000"
+    restart: always
+    depends_on:
+      - postgres
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: pgadmin
-    networks:
-      - rinhav22222
+      - DB_HOST=postgres
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "200MB"
+
+  api02:
+    <<: *api
+    hostname: api02
+    ports:
+      - "3002:3000"
+
+  nginx:
+    image: nginx:stable-perl
+    hostname: nginx
+    ports:
+      - "9999:9999"
+    restart: always
+    depends_on:
+      - api01
+      - api02
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "200MB"
 
 networks:
-  rinhav22222:
+  default:
     driver: bridge
+    name: rinhav22222
+    
