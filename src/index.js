@@ -3,7 +3,6 @@ const { executeTransaction } = require("./services/transactions");
 const { obtainUserStatement } = require("./services/statement");
 const ApiError = require("./errors/apiError");
 const ErrorHandler = require("./middleware/errorHandler");
-const { getUser } = require("./db");
 const app = express();
 const port = 3000;
 
@@ -24,7 +23,7 @@ app.get("/clientes/:id/extrato", async (req, res, next) => {
   }
 });
 
-app.post("/clientes/:id/transacoes", (req, res, next) => {
+app.post("/clientes/:id/transacoes", async (req, res, next) => {
   const body = req.body;
   const { id } = req.params;
 
@@ -44,10 +43,20 @@ app.post("/clientes/:id/transacoes", (req, res, next) => {
   if (body.tipo !== "c" && body.tipo !== "d") {
     next(ApiError({ message: "Tipo inválido", statusCode: 422 }));
   }
+  try {
+    const createdTransaction = await executeTransaction(id, body);
+    res.json(createdTransaction);
+  } catch (error) {
+    if (error.message === "user_not_found") {
+      next(ApiError({ message: "user_not_found", statusCode: 404 }));
+    }
 
-  const createdTransaction = executeTransaction(body);
+    if (error.message === "limit_exceeded") {
+      next(ApiError({ message: "limit_exceeded", statusCode: 422 }));
+    }
 
-  res.json(createdTransaction);
+    next(error);
+  }
 });
 
 app.use(ErrorHandler);

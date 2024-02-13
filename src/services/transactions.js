@@ -1,27 +1,39 @@
-const { createTransaction, getUser } = require("../db");
+const { createTransaction, getUser, updateUserBalance } = require("../db");
 
-function executeTransaction(transactionRequest) {
-  const { descricao, tipo, valor, id } = transactionRequest;
+async function executeTransaction(id, transactionData) {
+  const { descricao, tipo, valor } = transactionData;
 
-  const userData = getUser(id);
+  const userData = await getUser(id);
+  const { balance, limit } = userData;
 
-  console.log(userData);
+  if (userData == null) {
+    throw new Error("user_not_found");
+  }
 
+  let newBalance = 0;
 
+  if (tipo == "d") {
+    newBalance = balance - valor;
+  } else {
+    newBalance = balance + valor;
+  }
 
+  if (Math.abs(newBalance) > limit) {
+    throw new Error("limit_exceeded");
+  }
 
+  await createTransaction({
+    userId: id,
+    type: tipo,
+    value: valor,
+    description: descricao,
+  });
 
-
-  // const transaction = createTransaction({
-  //   userId: id,
-  //   type: tipo,
-  //   value: valor,
-  //   description: descricao,
-  // });
+  await updateUserBalance(id, newBalance);
 
   return {
-    limite: 1000,
-    saldo: 1000,
+    limite: balance,
+    saldo: newBalance,
   };
 }
 

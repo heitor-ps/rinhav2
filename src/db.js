@@ -3,20 +3,12 @@ async function connect() {
 
   const { Pool } = require("pg");
   const pool = new Pool({
-    user: "postgres",
-    host: "localhost",
-    database: "clients",
-    password: "postgres",
-    port: 5432,
+    user: process.env.DB_USER || "postgres",
+    host: process.env.DB_HOST || "localhost",
+    database: process.env.DB_NAME || "clients",
+    password: process.env.DB_PASS || "postgres",
+    port: process.env.DB_PORT || 5432,
   });
-
-  //apenas testando a conexão
-  const client = await pool.connect();
-  console.log("Criou pool de conexões no PostgreSQL!");
-
-  const res = await client.query("SELECT NOW()");
-  console.log(res.rows[0]);
-  client.release();
 
   //guardando para usar sempre o mesmo
   global.connection = pool;
@@ -36,12 +28,13 @@ async function getUser(id) {
 
 async function createTransaction(transactionRequest) {
   await query(
-    "INSERT INTO transactions (user_id, type, value, description) VALUES ($1, $2, $3, $4)",
+    "INSERT INTO transactions (user_id, type, value, description, created) VALUES ($1, $2, $3, $4, $5)",
     [
       transactionRequest.userId,
       transactionRequest.type,
       transactionRequest.value,
       transactionRequest.description,
+      new Date().toISOString(),
     ]
   );
 }
