@@ -1,18 +1,18 @@
 const { getUser, getUserTransactions } = require("../db");
 
-function obtainUserStatement(id) {
-  const user = getUser(id);
+async function obtainUserStatement(id) {
+  const user = await getUser(id);
 
   if (user == null) {
     throw new Error("user_not_found");
   }
 
-  const transactions = getUserTransactions(id);
+  const transactions = await getUserTransactions(id) || [];
 
   return {
     saldo: {
-      total: 0,
-      limite: 0,
+      total: user.balance,
+      limite: user.limit,
       data_extrato: new Date().toISOString(),
     },
     ultimas_transacoes: [...transactions],

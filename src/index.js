@@ -1,35 +1,35 @@
 const express = require("express");
-const { createTransaction } = require("./services/transactions");
+const { executeTransaction } = require("./services/transactions");
+const { obtainUserStatement } = require("./services/statement");
+const ApiError = require("./errors/apiError");
+const ErrorHandler = require("./middleware/errorHandler");
+const { getUser } = require("./db");
 const app = express();
 const port = 3000;
 
 app.use(express.json());
 
-app.get("/clientes/:id/extrato", (req, res) => {
+app.get("/clientes/:id/extrato", async (req, res, next) => {
   const { id } = req.params;
-	try {
-		const statement = obtainUserStatement(id);
-		res.json(statement)
-	} catch (error) {
-		if (error.message === "user_not_found") {
-			return res.status(404).json({
-				message: "user_not_found",
-			});
-		}
-		return res.status(500).json({
-			message: "internal_error",
-		})
-	}
+  try {
+    const statement = await obtainUserStatement(id);
+
+    res.json(statement);
+  } catch (error) {
+    if (error.message === "user_not_found") {
+      next(ApiError({ message: "user_not_found", statusCode: 404 }));
+    }
+
+    next(error);
+  }
 });
 
-app.post("/clientes/:id/transacoes", (req, res) => {
+app.post("/clientes/:id/transacoes", (req, res, next) => {
   const body = req.body;
   const { id } = req.params;
 
   if (body.valor == null || body.valor < 0 || !Number.isInteger(body.valor)) {
-    return res.status(422).json({
-      message: "Valor inválido",
-    });
+    next(ApiError({ message: "Valor inválido", statusCode: 422 }));
   }
 
   if (
@@ -38,23 +38,19 @@ app.post("/clientes/:id/transacoes", (req, res) => {
     body.descricao.length < 0 ||
     body.descricao.length > 10
   ) {
-    return res.status(422).json({
-      message: "Descricão inválida",
-    });
+    next(ApiError({ message: "Descricão inválida", statusCode: 422 }));
   }
 
   if (body.tipo !== "c" && body.tipo !== "d") {
-    return res.status(422).json({
-      message: "Tipo inválido",
-    });
+    next(ApiError({ message: "Tipo inválido", statusCode: 422 }));
   }
 
-  const createdTransaction = createTransaction(body);
+  const createdTransaction = executeTransaction(body);
 
-  
-
-  res.json(createdTransaction)
+  res.json(createdTransaction);
 });
+
+app.use(ErrorHandler);
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

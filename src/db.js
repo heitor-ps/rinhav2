@@ -3,7 +3,11 @@ async function connect() {
 
   const { Pool } = require("pg");
   const pool = new Pool({
-    connectionString: process.env.CONNECTION_STRING,
+    user: "postgres",
+    host: "localhost",
+    database: "clients",
+    password: "postgres",
+    port: 5432,
   });
 
   //apenas testando a conexão
@@ -32,7 +36,7 @@ async function getUser(id) {
 
 async function createTransaction(transactionRequest) {
   await query(
-    "INSERT INTO transactions (userId, type, value, description) VALUES ($1, $2, $3, $4)",
+    "INSERT INTO transactions (user_id, type, value, description) VALUES ($1, $2, $3, $4)",
     [
       transactionRequest.userId,
       transactionRequest.type,
@@ -44,8 +48,9 @@ async function createTransaction(transactionRequest) {
 
 async function getUserTransactions(id) {
   const res = await query(
-    "SELECT * FROM transactions WHERE userId = $1 ORDER BY id DESC LIMIT 10",
-  )
+    "SELECT * FROM transactions WHERE user_id = $1 ORDER BY id DESC LIMIT 10",
+    [id]
+  );
   return res.rows;
 }
 
@@ -57,5 +62,6 @@ module.exports = {
   getUser,
   createTransaction,
   getUserTransactions,
-  updateUserBalance
+  updateUserBalance,
+  connect,
 };
