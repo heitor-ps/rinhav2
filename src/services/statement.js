@@ -1,14 +1,13 @@
-const db = require("../db");
+const db = require("../db/db");
 
 async function obtainUserStatement(id) {
-  try {
   const user = await db.getUser(id);
 
   if (user == null) {
     throw new Error("user_not_found");
   }
 
-  const transactions = await db.getUserTransactions(id) || [];
+  const transactions = (await db.getUserTransactions(id)) || [];
 
   return {
     saldo: {
@@ -16,12 +15,16 @@ async function obtainUserStatement(id) {
       limite: user.limit,
       data_extrato: new Date().toISOString(),
     },
-    ultimas_transacoes: [...transactions],
+    ultimas_transacoes: [
+      ...transactions.map(({description, type, value}) => {
+        return {
+          descricao: description,
+          tipo: type,
+          valor: value,
+        };
+      }),
+    ],
   };
-
-  } finally {
-    db.releaseConnection();
-  }
 }
 
 module.exports = {
