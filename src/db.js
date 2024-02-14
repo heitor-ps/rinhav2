@@ -8,6 +8,9 @@ async function connect() {
     database: process.env.DB_NAME || "clients",
     password: process.env.DB_PASS || "postgres",
     port: process.env.DB_PORT || 5432,
+    max: 100,
+    idleTimeoutMillis: 1000,
+    connectionTimeoutMillis: 5000,
   });
 
   //guardando para usar sempre o mesmo
@@ -16,8 +19,8 @@ async function connect() {
 }
 
 async function query(sql, params) {
-  const client = await connect();
-  const res = await client.query(sql, params);
+  const pool = await connect();
+  const res = await pool.query(sql, params);
   return res;
 }
 
@@ -27,16 +30,23 @@ async function getUser(id) {
 }
 
 async function createTransaction(transactionRequest) {
-  await query(
-    "INSERT INTO transactions (user_id, type, value, description, created) VALUES ($1, $2, $3, $4, $5)",
-    [
-      transactionRequest.userId,
-      transactionRequest.type,
-      transactionRequest.value,
-      transactionRequest.description,
-      new Date().toISOString(),
-    ]
-  );
+  const queryInsertText =
+    "INSERT INTO transactions (user_id, type, value, description, created) VALUES ($1, $2, $3, $4, $5)";
+
+  await query(queryInsertText, [
+    transactionRequest.userId,
+    transactionRequest.type,
+    transactionRequest.value,
+    transactionRequest.description,
+    new Date().toISOString(),
+  ]);
+
+  const updateQuery = "UPDATE users SET balance = $1 WHERE id = $2";
+
+  await query(updateQuery, [
+    transactionRequest.newBalance,
+    transactionRequest.userId,
+  ]);
 }
 
 async function getUserTransactions(id) {
@@ -47,14 +57,29 @@ async function getUserTransactions(id) {
   return res.rows;
 }
 
-async function updateUserBalance(id, balance) {
-  await query("UPDATE users SET balance = $1 WHERE id = $2", [balance, id]);
+async function beginTransaction() {
+  await query("BEGIN");
+}
+
+async function commitTransaction() {
+  await query("COMMIT");
+}
+
+async function releaseConnection() {
+  (await connect()).release();
+}
+
+async function rollbackTransaction() {
+  await query("ROLLBACK");
 }
 
 module.exports = {
   getUser,
   createTransaction,
   getUserTransactions,
-  updateUserBalance,
   connect,
+  beginTransaction,
+  commitTransaction,
+  rollbackTransaction,
+  releaseConnection
 };

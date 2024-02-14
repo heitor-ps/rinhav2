@@ -1,13 +1,14 @@
-const { getUser, getUserTransactions } = require("../db");
+const db = require("../db");
 
 async function obtainUserStatement(id) {
-  const user = await getUser(id);
+  try {
+  const user = await db.getUser(id);
 
   if (user == null) {
     throw new Error("user_not_found");
   }
 
-  const transactions = await getUserTransactions(id) || [];
+  const transactions = await db.getUserTransactions(id) || [];
 
   return {
     saldo: {
@@ -17,6 +18,10 @@ async function obtainUserStatement(id) {
     },
     ultimas_transacoes: [...transactions],
   };
+
+  } finally {
+    db.releaseConnection();
+  }
 }
 
 module.exports = {

@@ -4,7 +4,8 @@ const ErrorHandler = (err, req, res, next) => {
   const message = err.message || "Internal Server Error";
   const error = err.error || "internal_error";
 
-	console.error(err.stack)
+	const recError = `[method: ${req.method}]\n [uri: ${req.originalUrl}]\n [body: ${JSON.stringify(req.body)}]\n [error: ${message}]`
+	console.error(recError, err);
   res.status(statusCode).json({ message: message, error: error, stack: err.stack });
 };
 
