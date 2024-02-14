@@ -11,10 +11,10 @@ services:
       POSTGRES_USER: postgres
     volumes:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    command: 'postgres -c max_connections=1000 -c shared_buffers=128MB -c synchronous_commit=off -c fsync=off -c full_page_writes=off'
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
-
       interval: 5s
       timeout: 5s
       retries: 20
@@ -22,8 +22,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.4"
-          memory: "270MB"
+          cpus: "0.35"
+          memory: "280MB"
 
   api01: &api
     image: podinho/rinhav2:latest
@@ -39,7 +39,7 @@ services:
       resources:
         limits:
           cpus: "0.5"
-          memory: "130MB"
+          memory: "85MB"
 
   api02:
     <<: *api
@@ -61,8 +61,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.1"
-          memory: "20MB"
+          cpus: "0.15"
+          memory: "50MB"
 
 networks:
   default:
