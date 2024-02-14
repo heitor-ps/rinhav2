@@ -16,7 +16,7 @@ app.get("/clientes/:id/extrato", async (req, res, next) => {
     res.json(statement);
   } catch (error) {
     if (error.message === "user_not_found") {
-      next(ApiError({ message: "user_not_found", statusCode: 404 }));
+      return next(ApiError({ message: "user_not_found", statusCode: 404 }));
     }
 
     next(error);
@@ -28,7 +28,7 @@ app.post("/clientes/:id/transacoes", async (req, res, next) => {
   const { id } = req.params;
 
   if (body.valor == null || body.valor < 0 || !Number.isInteger(body.valor)) {
-    next(ApiError({ message: "Valor inválido", statusCode: 422 }));
+    return next(ApiError({ message: "Valor inválido", statusCode: 422 }));
   }
 
   if (
@@ -37,22 +37,22 @@ app.post("/clientes/:id/transacoes", async (req, res, next) => {
     body.descricao.length < 0 ||
     body.descricao.length > 10
   ) {
-    next(ApiError({ message: "Descricão inválida", statusCode: 422 }));
+    return next(ApiError({ message: "Descricão inválida", statusCode: 422 }));
   }
 
   if (body.tipo !== "c" && body.tipo !== "d") {
-    next(ApiError({ message: "Tipo inválido", statusCode: 422 }));
+    return next(ApiError({ message: "Tipo inválido", statusCode: 422 }));
   }
   try {
     const createdTransaction = await executeTransaction(id, body);
     res.json(createdTransaction);
   } catch (error) {
     if (error.message === "user_not_found") {
-      next(ApiError({ message: "user_not_found", statusCode: 404 }));
+      return next(ApiError({ message: "user_not_found", statusCode: 404 }));
     }
 
     if (error.message === "limit_exceeded") {
-      next(ApiError({ message: "limit_exceeded", statusCode: 422 }));
+      return next(ApiError({ message: "limit_exceeded", statusCode: 422 }));
     }
 
     next(error);
